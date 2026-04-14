@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ii packages
 
-## Getting Started
+A statically exported Next.js site for ii open-source packages, deployed on Firebase Hosting with Playwright coverage and branch-based CI/CD.
 
-First, run the development server:
+## Stack
+
+- Next.js App Router + TypeScript
+- Tailwind CSS v4
+- Playwright for browser coverage and screenshots
+- Firebase Analytics for the production web app
+- Firebase Hosting for staging and production deploys
+- GitHub Actions for branch-based pipelines
+
+## Commands
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
 pnpm dev
-# or
-bun dev
+pnpm lint
+pnpm build
+pnpm test
+pnpm test:screenshots
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Delivery model
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `dev` branch deploys to the Firebase staging channel after lint, build, and Playwright pass.
+- `main` branch deploys to production after the same checks pass.
+- Screenshot artifacts are uploaded in CI from `tests/screenshots/`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Local workflow
 
-## Learn More
+1. Run `pnpm install`.
+2. Start the app with `pnpm dev`.
+3. Before finishing work, run `pnpm lint` and `pnpm build`.
+4. Run `pnpm test` for browser coverage and `pnpm test:screenshots` when refreshing screenshot artifacts.
 
-To learn more about Next.js, take a look at the following resources:
+## Hosting
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Firebase project: `ii-package`
+- Static output directory: `out/`
+- Production site: `https://ii-package.web.app`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Testing notes
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Use `data-testid` selectors in Playwright.
+- Avoid class- or text-based selectors.
+- Keep screenshots committed in `tests/screenshots/`.

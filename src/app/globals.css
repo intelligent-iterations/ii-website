@@ -1,1 +1,80 @@
 @import "tailwindcss";
+
+:root {
+  --page-bg: #f6f0e3;
+  --surface: rgba(255, 251, 244, 0.9);
+  --surface-soft: rgba(255, 251, 244, 0.68);
+  --surface-strong: rgba(34, 31, 26, 0.05);
+  --ink: #1f1b16;
+  --muted: rgba(31, 27, 22, 0.64);
+  --muted-strong: rgba(31, 27, 22, 0.8);
+  --accent: #cf5f39;
+  --line: rgba(31, 27, 22, 0.12);
+  --line-strong: rgba(31, 27, 22, 0.22);
+}
+
+html {
+  background: var(--page-bg);
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-space-grotesk), sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.72), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 26%),
+    var(--page-bg);
+}
+
+::selection {
+  background: rgba(207, 95, 57, 0.18);
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(to right, rgba(31, 27, 22, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(31, 27, 22, 0.04) 1px, transparent 1px);
+  background-position: center;
+  background-size: 44px 44px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.75), transparent 78%);
+}
+
+.panel-surface {
+  border: 1px solid var(--line);
+  border-radius: 2rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4), transparent),
+    var(--surface);
+  box-shadow: 0 18px 48px rgba(31, 27, 22, 0.08);
+}
+
+.label-small,
+.label-chip {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.label-small {
+  color: var(--muted);
+}
+
+.label-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 251, 244, 0.92);
+  padding: 0.55rem 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .hero-grid {
+    background-size: 32px 32px;
+  }
+
+  .panel-surface {
+    border-radius: 1.5rem;
+  }
+}

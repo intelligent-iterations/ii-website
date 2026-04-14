@@ -38,6 +38,7 @@ yarn-error.log*
 
 # firebase
 .firebase/
+firebase-debug.log
 
 # playwright
 /playwright-report/
