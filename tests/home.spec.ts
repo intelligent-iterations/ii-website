@@ -1,20 +1,16 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Home page", () => {
-  test("renders the launch narrative and structure", async ({ page }) => {
+  test("renders the minimal hello world page", async ({ page }) => {
     await page.goto("/");
 
     const heading = page.getByTestId("home-heading");
     await expect(heading).toBeVisible();
-    await expect(heading).toContainText("public front door");
+    await expect(heading).toHaveText("Hello World");
 
     const description = page.getByTestId("home-description");
     await expect(description).toBeVisible();
-    await expect(description).toContainText("stable static foundation");
-
-    await expect(page.getByTestId("foundation-grid")).toBeVisible();
-    await expect(page.getByTestId("release-flow")).toBeVisible();
-    await expect(page.getByTestId("catalog-section")).toBeVisible();
+    await expect(description).toHaveText("ii packages");
   });
 
   test("has correct page title", async ({ page }) => {
@@ -22,12 +18,10 @@ test.describe("Home page", () => {
     await expect(page).toHaveTitle(/ii packages/);
   });
 
-  test("shows all launch metrics and catalog tracks", async ({ page }) => {
+  test("renders a single page shell", async ({ page }) => {
     await page.goto("/");
-
-    await expect(page.getByTestId("launch-metric-card")).toHaveCount(3);
-    await expect(page.getByTestId("foundation-card")).toHaveCount(3);
-    await expect(page.getByTestId("release-step")).toHaveCount(2);
-    await expect(page.getByTestId("catalog-track")).toHaveCount(3);
+    await expect(page.getByTestId("home-page")).toBeVisible();
+    await expect(page.getByTestId("home-heading")).toHaveCount(1);
+    await expect(page.getByTestId("home-description")).toHaveCount(1);
   });
 });
