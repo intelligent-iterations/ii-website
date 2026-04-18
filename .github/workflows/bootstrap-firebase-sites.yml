@@ -1,0 +1,39 @@
+name: Bootstrap Firebase Hosting sites
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-sites:
+    runs-on: [self-hosted, marketer]
+    timeout-minutes: 10
+    steps:
+      - name: Write service account key
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_II_PACKAGE }}
+        run: |
+          mkdir -p "$RUNNER_TEMP"
+          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+
+      - name: Install firebase-tools
+        run: |
+          export PATH="/opt/homebrew/opt/node@22/bin:/opt/homebrew/bin:$PATH"
+          command -v firebase >/dev/null 2>&1 || npm install -g firebase-tools
+
+      - name: Create ii-web-dev site
+        run: |
+          export PATH="/opt/homebrew/opt/node@22/bin:/opt/homebrew/bin:$PATH"
+          firebase hosting:sites:create ii-web-dev --project ii-package 2>&1 || \
+            echo "site may already exist — continuing"
+
+      - name: Create ii-web-prod site
+        run: |
+          export PATH="/opt/homebrew/opt/node@22/bin:/opt/homebrew/bin:$PATH"
+          firebase hosting:sites:create ii-web-prod --project ii-package 2>&1 || \
+            echo "site may already exist — continuing"
+
+      - name: List sites
+        run: |
+          export PATH="/opt/homebrew/opt/node@22/bin:/opt/homebrew/bin:$PATH"
+          firebase hosting:sites:list --project ii-package
