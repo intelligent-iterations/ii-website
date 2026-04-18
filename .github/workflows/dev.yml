@@ -1,4 +1,4 @@
-name: Dev — Deploy to staging
+name: Dev — Deploy to dev site
 
 on:
   push:
@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   build-deploy:
-    name: Build, test, and deploy to staging
+    name: Build, test, and deploy to dev site
     runs-on: [self-hosted, marketer]
     timeout-minutes: 25
     steps:
@@ -57,4 +57,5 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_II_PACKAGE }}
           projectId: ii-package
-          channelId: staging
+          target: dev
+          channelId: live
