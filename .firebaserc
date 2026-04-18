@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "ii-package"
+  },
+  "targets": {
+    "ii-package": {
+      "hosting": {
+        "dev": ["ii-web-dev"],
+        "prod": ["ii-web-prod"]
+      }
+    }
   }
 }
