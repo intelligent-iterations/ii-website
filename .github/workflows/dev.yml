@@ -9,50 +9,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  boot-vm:
-    name: Boot VM
-    runs-on: [self-hosted, coordinator]
-    timeout-minutes: 5
-    env:
-      VM_TYPE: marketer
-    outputs:
-      vm-name: ${{ steps.dispatch.outputs.vm-name }}
-    steps:
-      - name: Dispatch VM
-        id: dispatch
-        run: |
-          if [ -z "${PIPELINE_DIR:-}" ]; then
-            echo "::error::PIPELINE_DIR not set"
-            exit 1
-          fi
-          VM_NAME="${VM_TYPE}-${{ github.run_id }}"
-          echo "vm-name=${VM_NAME}" >> "$GITHUB_OUTPUT"
-
-          "${PIPELINE_DIR}/coordinator/dispatch.sh" \
-            "$VM_TYPE" \
-            "${{ github.repository }}" \
-            "${{ github.run_id }}" &
-          DISPATCH_PID=$!
-
-          for i in $(seq 1 90); do
-            ONLINE=$(gh api "repos/${{ github.repository }}/actions/runners" \
-              --jq ".runners[] | select(.name == \"${VM_NAME}\") | .status" 2>/dev/null || true)
-            if [ "$ONLINE" = "online" ]; then
-              echo "VM runner is online!"
-              break
-            fi
-            sleep 2
-          done
-
-          if [ "$ONLINE" != "online" ]; then
-            echo "::error::VM runner did not come online within 180s"
-            kill "$DISPATCH_PID" 2>/dev/null || true
-            exit 1
-          fi
-
   build-deploy:
     name: Build, test, and deploy to staging
-    needs: boot-vm
     runs-on: [self-hosted, marketer]
     timeout-minutes: 25
     steps:
@@ -100,18 +58,3 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_II_PACKAGE }}
           projectId: ii-package
           channelId: staging
-
-  cleanup:
-    name: Cleanup VM
-    needs: [boot-vm, build-deploy]
-    if: always()
-    runs-on: [self-hosted, coordinator]
-    timeout-minutes: 3
-    steps:
-      - name: Stop and delete VM
-        run: |
-          VM="${{ needs.boot-vm.outputs.vm-name }}"
-          tart stop "$VM" 2>/dev/null || true
-          sleep 2
-          tart delete "$VM" 2>/dev/null || true
-          "${PIPELINE_DIR}/coordinator/ram-ledger.sh" release "$VM" || true
