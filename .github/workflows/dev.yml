@@ -9,23 +9,78 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  boot-vm:
+    name: Boot VM
+    runs-on: [self-hosted, coordinator]
+    timeout-minutes: 5
+    env:
+      VM_TYPE: marketer
+    outputs:
+      vm-name: ${{ steps.dispatch.outputs.vm-name }}
     steps:
+      - name: Dispatch VM
+        id: dispatch
+        run: |
+          if [ -z "${PIPELINE_DIR:-}" ]; then
+            echo "::error::PIPELINE_DIR not set"
+            exit 1
+          fi
+          VM_NAME="${VM_TYPE}-${{ github.run_id }}"
+          echo "vm-name=${VM_NAME}" >> "$GITHUB_OUTPUT"
+
+          "${PIPELINE_DIR}/coordinator/dispatch.sh" \
+            "$VM_TYPE" \
+            "${{ github.repository }}" \
+            "${{ github.run_id }}" &
+          DISPATCH_PID=$!
+
+          for i in $(seq 1 90); do
+            ONLINE=$(gh api "repos/${{ github.repository }}/actions/runners" \
+              --jq ".runners[] | select(.name == \"${VM_NAME}\") | .status" 2>/dev/null || true)
+            if [ "$ONLINE" = "online" ]; then
+              echo "VM runner is online!"
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$ONLINE" != "online" ]; then
+            echo "::error::VM runner did not come online within 180s"
+            kill "$DISPATCH_PID" 2>/dev/null || true
+            exit 1
+          fi
+
+  build-deploy:
+    name: Build, test, and deploy to staging
+    needs: boot-vm
+    runs-on: [self-hosted, marketer]
+    timeout-minutes: 25
+    steps:
+      - name: Git auth
+        env:
+          CI_TOKEN: ${{ secrets.CI_TOKEN }}
+        run: |
+          git config --global --replace-all credential.helper ""
+          [ -n "${CI_TOKEN}" ] && git config --global url."https://x-access-token:${CI_TOKEN}@github.com/".insteadOf "https://github.com/"
+
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: pnpm
+          token: ${{ secrets.CI_TOKEN || secrets.GITHUB_TOKEN }}
+        timeout-minutes: 5
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm build
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test
+      - name: Install pnpm + deps
+        run: |
+          export PATH="/opt/homebrew/opt/node@22/bin:/opt/homebrew/bin:$PATH"
+          command -v pnpm >/dev/null 2>&1 || npm install -g pnpm
+          pnpm install --frozen-lockfile
+
+      - name: Lint + build + test
+        run: |
+          export PATH="/opt/homebrew/opt/node@22/bin:/opt/homebrew/bin:$PATH"
+          pnpm lint
+          pnpm build
+          pnpm exec playwright install chromium
+          pnpm test
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -39,25 +94,24 @@ jobs:
           name: screenshots-dev
           path: tests/screenshots/
 
-  deploy-staging:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_II_PACKAGE }}
           projectId: ii-package
           channelId: staging
+
+  cleanup:
+    name: Cleanup VM
+    needs: [boot-vm, build-deploy]
+    if: always()
+    runs-on: [self-hosted, coordinator]
+    timeout-minutes: 3
+    steps:
+      - name: Stop and delete VM
+        run: |
+          VM="${{ needs.boot-vm.outputs.vm-name }}"
+          tart stop "$VM" 2>/dev/null || true
+          sleep 2
+          tart delete "$VM" 2>/dev/null || true
+          "${PIPELINE_DIR}/coordinator/ram-ledger.sh" release "$VM" || true
